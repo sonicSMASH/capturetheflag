@@ -1,4 +1,4 @@
-local RESPAWN_IMMUNITY_SECONDS = 4
+local RESPAWN_IMMUNITY_SECONDS = 5
 -- The value is a table if it's respawn immunity and false if it's a custom immunity
 local immune_players = {}
 
@@ -15,7 +15,7 @@ ctf_cosmetics.get_skin = function(player, color)
 	end
 end
 
-function ctf_modebase.give_immunity(player, respawn_timer)
+function ctf_modebase.give_immunity(player, respawn_timer, bandage_timer)
 	local pname = player:get_player_name()
 	local old = immune_players[pname]
 
@@ -62,6 +62,75 @@ function ctf_modebase.give_immunity(player, respawn_timer)
 		minsize = 1,
 		maxsize = 2,
 	})
+  	immune_hud = player:hud_add({
+  	 	hud_elem_type = "image",
+   	 	position = {x = 1, y = 0},
+   	 	scale = {x = 2.25, y = 2.25},
+  	 	text = "ctf_modebase_immune.png",
+  	 	alignment = {x = 0, y = 0},
+    	 	offset = {x = -60, y = 70},
+   	 	number = 0xFFFFFF,
+    	 	size = {x = 1, y = 1},
+   	 	z_index = 100,
+         	direction = 0,
+         	orientation = {x = 0, y = 0, z = 0},
+         	name = "ctf_modebase_immune.png",
+         	player_name = player:get_player_name(),
+	})
+
+	hud_bg = player:hud_add({
+  	 	hud_elem_type = "image",
+   	 	position = {x = 1, y = 0},
+   	 	scale = {x = 4, y = 4},
+  	 	text = "ctf_background.png",
+  	 	alignment = {x = 0, y = 0},
+    	 	offset = {x = -60, y = 70},
+   	 	number = 0xFFFFFF,
+    	 	size = {x = 1, y = 1},
+   	 	z_index = 99,
+         	direction = 0,
+         	orientation = {x = 0, y = 0, z = 0},
+         	name = "ctf_background.png",
+         	player_name = player:get_player_name(),
+	})
+
+	statbar = player:hud_add({
+    		hud_elem_type = "statbar",
+    		position = {x = 1, y = 0},
+    		size = {x = 24, y = 12},
+    		text = "ctf_statbar.png",
+		number = respawn_timer,
+		direction = 0,
+		offset = {x = -92.5, y = 100},
+	})
+	local value = respawn_timer or bandage_timer
+	-- Change the statbar to the remaining immune time
+	local function remaining(value, player, statbar)
+			if value == nil then
+				 player:hud_remove(statbar)
+				 return 
+			end
+			
+			function change_hud(value)
+					player:hud_change(statbar, "number", value)
+			end
+			minetest.chat_send_all(value)
+			minetest.after(0.01, change_hud, value)
+			
+			
+			value = value - 1
+				
+			if value >= 0 then 
+				minetest.after(1, remaining, value, player, statbar) 
+
+				
+			elseif value < 0 then
+				ctf_modebase.remove_immunity(player)
+				return
+			end
+	end
+
+	remaining(value, player, statbar)
 
 	if old == nil then
 		player_api.set_texture(player, 1, ctf_cosmetics.get_skin(player))
@@ -90,6 +159,10 @@ function ctf_modebase.remove_immunity(player)
 		player_api.set_texture(player, 1, ctf_cosmetics.get_skin(player))
 	end
 
+	player:hud_remove(immune_hud) -- remove HUD
+	player:hud_remove(hud_bg)
+	player:hud_remove(statbar)
+
 	player:set_properties({pointable = true})
 	player:set_armor_groups({fleshy = 100})
 end
@@ -114,7 +187,12 @@ function ctf_modebase.remove_respawn_immunity(player)
 
 	player:set_properties({pointable = true})
 	player:set_armor_groups({fleshy = 100})
+	
+	player:hud_remove(immune_hud) -- remove HUD
+	player:hud_remove(hud_bg)
+	player:hud_remove(statbar)
 
+	
 	return true
 end
 
@@ -128,6 +206,7 @@ end)
 
 minetest.register_on_dieplayer(function(player)
 	ctf_modebase.remove_immunity(player)
+	
 	player:set_properties({pointable = false})
 end)
 
