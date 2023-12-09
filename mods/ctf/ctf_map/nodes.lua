@@ -69,7 +69,7 @@ minetest.register_node("ctf_map:ind_water", {
 ctf_map.barrier_nodes[minetest.get_content_id("ctf_map:ind_water")] = minetest.get_content_id("default:water_source")
 
 minetest.register_node("ctf_map:ind_lava", {
-	description = "Indestructible Lava Barrier Stone",
+	description = "Indestructible Lava Barrier Glass",
 	groups = {immortal = 1},
 	tiles = {"ctf_map_ind_lava.png"},
 	is_ground_content = false
@@ -102,6 +102,7 @@ local mod_prefixes = {
 	default = "";
 	stairs = "";
 	wool = "wool_";
+	walls = "walls_";
 }
 
 -- See Lua API, section "Node-only groups"
@@ -109,6 +110,7 @@ local preserved_groups = {
 	bouncy = true;
 	fence = true;
 	connect_to_raillike = true;
+	wall = true;
 	disable_jump = true;
 	fall_damage_add_percent = true;
 	slippery = true;
@@ -214,8 +216,10 @@ local chest_def = {
 
 		local inv = minetest.get_inventory({type = "node", pos = pos})
 		if not inv or inv:is_empty("main") then
-			minetest.set_node(pos, {name = "air"})
-			minetest.show_formspec(player:get_player_name(), "", player:get_inventory_formspec())
+			minetest.close_formspec(player:get_player_name(), "")
+			minetest.after(0, function()
+				minetest.set_node(pos, {name = "air"})
+			end)
 		end
 	end,
 	on_rightclick = function(pos, node, clicker, itemstack, pointed_thing)

@@ -97,18 +97,20 @@ end)
 
 minetest.register_chatcommand("donate", {
 	description = "Donate your match score to your teammate\nCan be used only once in 10 minutes",
-	params = "<playername> <score>",
+	params = "<playername> <score> [message]",
 	func = function(name, param)
 		local current_mode = ctf_modebase:get_current_mode()
 		if not current_mode or not ctf_modebase.match_started then
 			return false, "The match hasn't started yet!"
 		end
 
-		local pname, score = string.match(param, "^(.*) (.*)$")
+		local pname, score, dmessage = string.match(param, "^(%S*) (%S*)(.*)$")
 
 		if ctf_core.to_number(pname) then
 			pname, score = score, pname
 		end
+
+		dmessage = (dmessage and dmessage ~= "") and (":" .. dmessage) or ""
 
 		if not pname then
 			return false, "You should provide the player name!"
@@ -125,8 +127,8 @@ minetest.register_chatcommand("donate", {
 			return false, "You should donate at least 5 score!"
 		end
 
-		if score > 100 then
-			return false, "You can donate no more than 100 score!"
+		if score > 400 then
+			return false, "You can donate no more than 400 score!"
 		end
 
 		if pname == name then
@@ -151,18 +153,22 @@ minetest.register_chatcommand("donate", {
 			return false, "You can donate only half of your match score!"
 		end
 
-		if donate_timer[name] and donate_timer[name] + 600 > os.time() then
-			return false, "You can donate only once in 10 minutes!"
+		if donate_timer[name] and donate_timer[name] + 300 > os.time() then
+			local time_diff = donate_timer[name] + 300 - os.time()
+			return false, string.format(
+				"You can donate only once in 5 minutes! You can donate again in %dm %ds.",
+				math.floor(time_diff / 60),
+				time_diff % 60)
 		end
 
 		current_mode.recent_rankings.add(pname, {score=score}, true)
 		current_mode.recent_rankings.add(name, {score=-score}, true)
 
 		donate_timer[name] = os.time()
+		local donate_text = string.format("%s donated %s score to %s%s", name, score, pname, dmessage)
+		minetest.chat_send_all(minetest.colorize("#00EEFF", donate_text))
+		ctf_modebase.announce(donate_text)
 
-		minetest.chat_send_all(minetest.colorize("#00EEFF",
-			string.format("%s donated %s score to %s for their hard work", name, score, pname)
-		))
 		minetest.log("action", string.format(
 			"Player '%s' donated %s score to player '%s'", name, score, pname
 		))
@@ -221,7 +227,7 @@ minetest.register_chatcommand("top50", {
 	params = "[mode:technical modename]",
 	func = function(name, param)
 		local mode_name, mode_data = get_gamemode(param)
-		if not mode_name then
+		if not mode_name or not mode_data then
 			return false, mode_data
 		end
 
@@ -256,7 +262,7 @@ minetest.register_chatcommand("make_pro", {
 	privs = {ctf_admin = true},
 	func = function(name, param)
 		local mode_name, mode_data, pname = get_gamemode(param)
-		if not mode_name then
+		if not mode_name or not mode_data then
 			return false, mode_data
 		end
 
