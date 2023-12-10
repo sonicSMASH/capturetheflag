@@ -315,7 +315,7 @@ ctf_healing.register_bandage("ctf_mode_classes:support_bandage", {
 				return
 			end
 
-			ctf_modebase.give_immunity(user)
+			ctf_modebase.give_immunity(user,"bandage",IMMUNITY_TIME)
 
 			local step = math.floor(65534 / IMMUNITY_TIME)
 			ctf_modebase.update_wear.start_update(pname, "ctf_mode_classes:support_bandage", step, false,
@@ -402,16 +402,6 @@ local function select_class(player, classname)
 	end
 end
 
-local function wrap_class(idx)
-	if idx > #class_list then
-		idx = 1
-	elseif idx < 1 then
-		idx = #class_list
-	end
-
-	return idx
-end
-
 function classes.show_class_formspec(player)
 	player = PlayerObj(player)
 	if not player then return end
@@ -439,9 +429,6 @@ function classes.show_class_formspec(player)
 			local class = context.class
 			local class_prop = class_props[class]
 
-			local next_class = class_props[class_list[wrap_class(table.indexof(class_list, class) + 1)]].name
-			local prev_class = class_props[class_list[wrap_class(table.indexof(class_list, class) - 1)]].name
-
 			return ctf_gui.list_to_formspec_str({
 				"formspec_version[4]",
 				{"size[%f,%f]", form_x, form_y+1.1},
@@ -454,21 +441,8 @@ function classes.show_class_formspec(player)
 					class_prop.name
 				},
 				{"box[0,%f;%f,0.8;#00000022]", bar_h-0.9, form_x},
-
 				{"image_button[0.1,%f;0.8,0.8;creative_prev_icon.png;prev_class;]", bar_h-0.9},
-				{"hypertext[1,%f;%f,1;classprev;<left><big><style color=#0DD>%s</style></big></left>]",
-					bar_h-0.7,
-					(form_x/2) - 1,
-					prev_class
-				},
-
 				{"image_button[%f,%f;0.8,0.8;creative_next_icon.png;next_class;]", form_x-0.9, bar_h-0.9},
-				{"hypertext[%f,%f;%f,1;classprev;<right><big><style color=#0DD>%s</style></big></right>]",
-					(form_x/2),
-					bar_h-0.7,
-					(form_x/2) - 1,
-					next_class
-				},
 
 				{"box[0.1,2.3;%f,%f;#00000077]", (form_x/2)-0.8, form_y-2.4},
 				{"model[0.1,2.3;%f,%f;classpreview;character.b3d;%s,blank.png;{0,160};;;]",
