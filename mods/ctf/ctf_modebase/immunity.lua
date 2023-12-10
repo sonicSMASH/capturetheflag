@@ -1,6 +1,7 @@
 local RESPAWN_IMMUNITY_SECONDS = 5
 -- The value is a table if it's respawn immunity and false if it's a custom immunity
 local immune_players = {}
+statbar = nil
 
 function ctf_modebase.is_immune(player)
 	return immune_players[PlayerName(player)] ~= nil
@@ -15,7 +16,35 @@ ctf_cosmetics.get_skin = function(player, color)
 	end
 end
 
-function ctf_modebase.give_immunity(player, respawn_timer, bandage_timer)
+
+
+update_immune_icon = function(value, player, statbar)
+		
+			if value == nil then
+				 player:hud_remove(statbar)
+				 return 
+			end
+			
+			function change_hud(value)
+				player:hud_change(statbar, "number", value)
+			end
+			minetest.chat_send_all(value)
+
+			change_hud(value)
+			
+			
+			value = value - 1
+				
+			if value >= 0 then 
+				minetest.after(1, update_immune_icon, value, player, statbar) 
+
+			elseif value < 0 then
+				ctf_modebase.remove_immunity(player)
+				return
+			end
+end
+
+function ctf_modebase.give_immunity(player, timer_type, duration)
 	local pname = player:get_player_name()
 	local old = immune_players[pname]
 
@@ -29,14 +58,15 @@ function ctf_modebase.give_immunity(player, respawn_timer, bandage_timer)
 		end
 	end
 
-	if respawn_timer then
+	if timer_type == "respawn" then
 		immune_players[pname] = {
-			timer = minetest.after(respawn_timer, ctf_modebase.remove_immunity, player),
+			timer = minetest.after(duration, ctf_modebase.remove_immunity, player),
 		}
-	else
+	elseif timer_type == "bandage" then
 		immune_players[pname] = {
 			timer = false,
 		}
+
 	end
 
 	immune_players[pname].particles = minetest.add_particlespawner({
@@ -93,44 +123,25 @@ function ctf_modebase.give_immunity(player, respawn_timer, bandage_timer)
          	name = "ctf_background.png",
          	player_name = player:get_player_name(),
 	})
-
-	statbar = player:hud_add({
-    		hud_elem_type = "statbar",
-    		position = {x = 1, y = 0},
-    		size = {x = 24, y = 12},
-    		text = "ctf_statbar.png",
-		number = respawn_timer,
-		direction = 0,
-		offset = {x = -92.5, y = 100},
-	})
-	local value = respawn_timer or bandage_timer
-	-- Change the statbar to the remaining immune time
-	local function remaining(value, player, statbar)
-			if value == nil then
-				 player:hud_remove(statbar)
-				 return 
-			end
-			
-			function change_hud(value)
-					player:hud_change(statbar, "number", value)
-			end
-			minetest.chat_send_all(value)
-			minetest.after(0.01, change_hud, value)
-			
-			
-			value = value - 1
-				
-			if value >= 0 then 
-				minetest.after(1, remaining, value, player, statbar) 
-
-				
-			elseif value < 0 then
-				ctf_modebase.remove_immunity(player)
-				return
-			end
+	
+	if statbar == nil then	
+		statbar = player:hud_add({
+    			hud_elem_type = "statbar",
+    			position = {x = 1, y = 0},
+    			size = {x = 24, y = 12},
+    			text = "ctf_statbar.png",
+			number = duration,
+			direction = 0,
+			offset = {x = -92.5, y = 100},
+		})
 	end
 
-	remaining(value, player, statbar)
+	
+	-- Change the statbar to the remaining immune time
+
+	
+	update_immune_icon(duration, player, statbar)
+
 
 	if old == nil then
 		player_api.set_texture(player, 1, ctf_cosmetics.get_skin(player))
@@ -162,6 +173,7 @@ function ctf_modebase.remove_immunity(player)
 	player:hud_remove(immune_hud) -- remove HUD
 	player:hud_remove(hud_bg)
 	player:hud_remove(statbar)
+	statbar = nil
 
 	player:set_properties({pointable = true})
 	player:set_armor_groups({fleshy = 100})
@@ -191,17 +203,17 @@ function ctf_modebase.remove_respawn_immunity(player)
 	player:hud_remove(immune_hud) -- remove HUD
 	player:hud_remove(hud_bg)
 	player:hud_remove(statbar)
-
+	statbar = nil
 	
 	return true
 end
 
 ctf_teams.register_on_allocplayer(function(player)
-	ctf_modebase.give_immunity(player, RESPAWN_IMMUNITY_SECONDS)
+	ctf_modebase.give_immunity(player, "respawn", RESPAWN_IMMUNITY_SECONDS)
 end)
 
 ctf_api.register_on_respawnplayer(function(player)
-	ctf_modebase.give_immunity(player, RESPAWN_IMMUNITY_SECONDS)
+	ctf_modebase.give_immunity(player, "respawn", RESPAWN_IMMUNITY_SECONDS)
 end)
 
 minetest.register_on_dieplayer(function(player)
