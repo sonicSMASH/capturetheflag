@@ -1,7 +1,7 @@
 local RESPAWN_IMMUNITY_SECONDS = 5
 -- The value is a table if it's respawn immunity and false if it's a custom immunity
 local immune_players = {}
-statbar = nil
+immune_bar = nil
 
 function ctf_modebase.is_immune(player)
 	return immune_players[PlayerName(player)] ~= nil
@@ -18,41 +18,6 @@ end
 
 
 
-update_immune_icon = function(value, player)
-	if statbar == nil then	
-		statbar = player:hud_add({
-    			hud_elem_type = "statbar",
-    			position = {x = 1, y = 0},
-    			size = {x = 24, y = 12},
-    			text = "ctf_statbar.png",
-			number = duration,
-			direction = 0,
-			offset = {x = -92.5, y = 100},
-		})
-	end
-			if value == nil then
-				 player:hud_remove(statbar)
-				 return 
-			end
-			
-			function change_hud(value)
-				player:hud_change(statbar, "number", value)
-			end
-			minetest.chat_send_all(value)
-
-			change_hud(value)
-			
-			
-			value = value - 1
-				
-			if value >= 0 then 
-				minetest.after(1, update_immune_icon) 
-
-			elseif value < 0 then
-				ctf_modebase.remove_immunity(player)
-				return
-			end
-end
 
 function ctf_modebase.give_immunity(player, timer_type, duration)
 	local pname = player:get_player_name()
@@ -134,13 +99,48 @@ function ctf_modebase.give_immunity(player, timer_type, duration)
          	player_name = player:get_player_name(),
 	})
 	
-
+	if immune_bar == nil then	
+		immune_bar = player:hud_add({
+    			hud_elem_type = "statbar",
+    			position = {x = 1, y = 0},
+    			size = {x = 24, y = 12},
+    			text = "ctf_statbar.png",
+			number = duration,
+			direction = 0,
+			offset = {x = -92.5, y = 100},
+		})
+	end
 
 	
 	-- Change the statbar to the remaining immune time
-
 	
-	update_immune_icon(duration, player:get_player_name())
+	function update_immune_icon(value, player, statbar)
+
+			if value == nil then
+				 player:hud_remove(statbar)
+				 return 
+			end
+			
+			function change_hud(value, player)
+				player:hud_change(statbar, "number", value)
+			end
+			minetest.chat_send_all(value)
+
+			change_hud(value, player)
+			
+			
+			value = value - 1
+				
+			if value >= 0 then 
+				minetest.after(1, update_immune_icon, value, player, statbar) 
+
+			elseif value < 0 then
+				ctf_modebase.remove_immunity(player)
+				return
+			end
+	end
+	
+	update_immune_icon(duration, player, immune_bar)
 
 
 	if old == nil then
@@ -172,7 +172,7 @@ function ctf_modebase.remove_immunity(player)
 
 	player:hud_remove(immune_hud) -- remove HUD
 	player:hud_remove(hud_bg)
-	player:hud_remove(statbar)
+	player:hud_remove(immune_bar)
 	statbar = nil
 
 	player:set_properties({pointable = true})
@@ -202,7 +202,7 @@ function ctf_modebase.remove_respawn_immunity(player)
 	
 	player:hud_remove(immune_hud) -- remove HUD
 	player:hud_remove(hud_bg)
-	player:hud_remove(statbar)
+	player:hud_remove(immune_bar)
 	statbar = nil
 	
 	return true
