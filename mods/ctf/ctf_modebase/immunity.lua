@@ -67,7 +67,7 @@ function ctf_modebase.give_immunity(player, timer_type, duration)
 		minsize = 1,
 		maxsize = 2,
 	})
-  	immune_hud = player:hud_add({
+  	immune_players[pname].immune_hud = player:hud_add({
   	 	hud_elem_type = "image",
    	 	position = {x = 1, y = 0},
    	 	scale = {x = 2.25, y = 2.25},
@@ -83,7 +83,7 @@ function ctf_modebase.give_immunity(player, timer_type, duration)
          	player_name = player:get_player_name(),
 	})
 
-	hud_bg = player:hud_add({
+	immune_players[pname].hud_bg = player:hud_add({
   	 	hud_elem_type = "image",
    	 	position = {x = 1, y = 0},
    	 	scale = {x = 4, y = 4},
@@ -99,8 +99,8 @@ function ctf_modebase.give_immunity(player, timer_type, duration)
          	player_name = player:get_player_name(),
 	})
 	
-	if immune_bar == nil then	
-		immune_bar = player:hud_add({
+	if statbar == nil then	
+		statbar = player:hud_add({
     			hud_elem_type = "statbar",
     			position = {x = 1, y = 0},
     			size = {x = 24, y = 12},
@@ -140,7 +140,7 @@ function ctf_modebase.give_immunity(player, timer_type, duration)
 			end
 	end
 	
-	update_immune_icon(duration, player, immune_bar)
+	update_immune_icon(duration, player, statbar)
 
 
 	if old == nil then
@@ -170,9 +170,9 @@ function ctf_modebase.remove_immunity(player)
 		player_api.set_texture(player, 1, ctf_cosmetics.get_skin(player))
 	end
 
-	player:hud_remove(immune_hud) -- remove HUD
-	player:hud_remove(hud_bg)
-	player:hud_remove(immune_bar)
+	player:hud_remove(immune_players[pname].immune_hud) -- remove HUD
+	player:hud_remove(immune_players[pname].hud_bg)
+	player:hud_remove(statbar)
 	statbar = nil
 
 	player:set_properties({pointable = true})
@@ -202,7 +202,7 @@ function ctf_modebase.remove_respawn_immunity(player)
 	
 	player:hud_remove(immune_hud) -- remove HUD
 	player:hud_remove(hud_bg)
-	player:hud_remove(immune_bar)
+	player:hud_remove(statbar)
 	statbar = nil
 	
 	return true
